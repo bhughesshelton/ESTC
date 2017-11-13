@@ -36,25 +36,34 @@ my @ddl = (
 	author varchar(255),
 	shop mediumtext,
 	loc varchar(255), 
-	date smallint,
+	date mediumint,
+	rawdate varchar(255),
 	pub mediumtext,
 	keywords varchar(255), 
 	pubPlace varchar(255),
 	pages varchar(255),
 	size varchar(255),
-	authorTitle mediumtext
+	authorTitle mediumtext,
+	PRIMARY KEY (id)
 	         ) ENGINE=InnoDB;",
 
 	"CREATE TABLE IF NOT EXISTS sellers (
+	pk int NOT NULL AUTO_INCREMENT,
 	id varchar(25), 
 	first varchar(255),
-	last varchar(255)
+	last varchar(255),
+	PRIMARY KEY (pk),
+	FOREIGN KEY (id) REFERENCES data(id)
+
 	) ENGINE=InnoDB;",
 
 	"CREATE TABLE IF NOT EXISTS printers (
+	pk int NOT NULL AUTO_INCREMENT,
 	id varchar(25), 
 	first varchar(255),
-	last varchar(255)
+	last varchar(255),
+	PRIMARY KEY (pk),
+	FOREIGN KEY (id) REFERENCES data(id)
 	) ENGINE=InnoDB;"
 
 
@@ -66,12 +75,12 @@ for my $sql(@ddl){
 say "All tables created successfully!";
 say "Sorting...Hang on, this could take a while.";
 our @books = get_books();
-my $sql = "INSERT INTO data(id,title,author,shop,loc,date,pub,keywords,pubPlace,pages,size, authorTitle)
-    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)";
+my $sql = "INSERT INTO data(id,title,author,shop,loc,date,rawdate,pub,keywords,pubPlace,pages,size,authorTitle)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)";
 my $stmt = $dbh->prepare($sql);
     
 foreach my $book(@books){
-	if($stmt->execute($book->{id}, $book->{title}, $book->{author}, $book->{shop}, $book->{loc}, $book->{date}, $book->{pub}, $book->{keywords}, $book->{pubPlace}, $book->{pages}, $book->{size}, $book->{authorTitle})){
+	if($stmt->execute($book->{id}, $book->{title}, $book->{author}, $book->{shop}, $book->{loc}, $book->{date}, $book->{rawdate}, $book->{pub}, $book->{keywords}, $book->{pubPlace}, $book->{pages}, $book->{size}, $book->{authorTitle})){
     say "book $book->{title} inserted successfully";
 	}
 }
@@ -124,7 +133,7 @@ sub get_books{
 			my ($ft) = $record->findnodes('./datafield[@tag="245"]');		 
 			my ($author) = $record->findnodes('./datafield[@tag="100"]/subfield[@code="a"]');
 			my ($authorTitle) = $record->findnodes('./datafield[@tag="100"]/subfield[@code="c"]');
-			my ($date) = $record->findnodes('./datafield[@tag="260"]/subfield[@code="c"]');
+			my ($rawdate) = $record->findnodes('./datafield[@tag="260"]/subfield[@code="c"]');
 			my ($pub) = $record->findnodes('./datafield[@tag="260"]/subfield[@code="b"]');
 			my ($pubPlace) = $record->findnodes('./datafield[@tag="260"]/subfield[@code="a"]');
 			my ($pages) = $record->findnodes('./datafield[@tag="300"]/subfield[@code="a"]');
@@ -157,8 +166,8 @@ sub get_books{
 			else{$title = "NULL";}
 			if ($author) {$author = $author->textContent();}
 			else{$author = "NULL";}
-			if ($date) {$date = $date->textContent();}
-			else{$date =  "NULL";}			
+			if ($rawdate) {$rawdate = $rawdate->textContent();}
+			else{$rawdate =  "NULL";}			
 			if ($pub) {$pub = $pub->textContent();}
 			else{$pub = "NULL";}
 			if ($pubPlace){$pubPlace = $pubPlace->textContent();}
@@ -180,12 +189,15 @@ sub get_books{
 	$pub =~ s/\[|\]//g;
 	$pub =~ s/vv|VV/W/g;
 	next if $pub =~ m/^s\.n/i;
+	
 	if ($pub =~ /(wynk|de Worde)/i){
 			$printerString = "Wynkyn deWorde";		
 		}elsif($pub =~ /(N\w*\.?,? (and|&) [IJ]\w*\.? Okes)/i){
 			$printerString = "Nicholas Okes and John Okes";
 		}elsif($pub =~ m/(([Ii]m|[Re])?[Pp]r[yi]nted) [Bb]y (([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)?)/){
 		 	$printerString = $3;
+		}elsif($pub =~ m/^[Bb]y (([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)?)/){
+		 	$printerString = $1;		 	
 		}elsif($pub =~ m/([Ee]xcudebat|[Ii]mpensis|[Tt]ypis|In (ae|æ)dibus|Apud) (([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?[A-Z]\w*\.?),?( ?(and)?)?)?)/){
 			$printerString = $2;
 		}elsif($pub =~ m/English College Press/i){
@@ -210,17 +222,17 @@ sub get_books{
 
 
 
-		if ($pub =~ m/[Ss]ou?lde? [Bb]y (([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)?)/){ 
-			 	$sellerString = $1;
-			}elsif($pub =~ m/[Ff]or (([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)?)/){
-				$sellerString = $1;
-			}elsif ($pub =~ m/([Ii]m-?|[Rr]e-?)?[Pp]r[yi]nted,?:?;? and ?((are)? to be)? sold,? by ?(me)?,? ?([A-Z]\w*\.?:? ?\w+\.?)?/){
-				$sellerString = $5;
-				$printerString = $5;
-			}elsif ($pub =~ m/([Ii]m-?|[Rr]e-?)?[Pp]r[iy]nted,?:?;? by ([A-Z]\w*\.?:? ?\w+\.?)?,?:?;? and ?(are to be)? sold (by (him|me)|at his shop)/){
-				$sellerString = $2;
-				$printerString = $2;
-			}
+	if ($pub =~ m/[Ss]ou?lde? [Bb]y (([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)?)/){ 
+		 	$sellerString = $1;
+		}elsif($pub =~ m/[Ff]or (([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)? ?(([A-Z]\w*\.?:? ?\w+\.?),?( ?(and)?)?)?)/){
+			$sellerString = $1;
+		}elsif ($pub =~ m/([Ii]m-?|[Rr]e-?)?[Pp]r[yi]nted,?:?;? and ?((are)? to be)? sold,? by ?(me)?,? ?([A-Z]\w*\.?:? ?\w+\.?)?/){
+			$sellerString = $5;
+			$printerString = $5;
+		}elsif ($pub =~ m/([Ii]m-?|[Rr]e-?)?[Pp]r[iy]nted,?:?;? by ([A-Z]\w*\.?:? ?\w+\.?)?,?:?;? and ?(are to be)? sold (by (him|me)|at his shop)/){
+			$sellerString = $2;
+			$printerString = $2;
+		}
 
 	if ($pub =~ m/(s(\w+)?t.?-? ?p\w+l\w+)/i)
 		{$loc = "Saint Paul's";}
@@ -258,13 +270,20 @@ sub get_books{
 			{$loc = "Stationer's Hall";}
 	else {$loc =  "NULL";}
 	
-		if ($pub =~ m/ at the ?(s[iy]g?ne? of ?(the)?)? (.*?)( at | in | on | ne(e|a)?re? | by | without | [vu]nder | [vu]pper | lower | nexte? | o[uv]er | [vu]pon | bes[iy]d| a | ag(ai|ey|ay)nst | w[iy]th[iy]n (and|&) are |(?<! s)\. (?![[ij]o)|,|:|;|\[|\])/i){
-		$shop = $3;
-		}else{
-		 	$shop = "NULL";
-		}
+	if ($pub =~ m/ at the ?(s[iy]g?ne? of ?(the)?)? (.*?)( at | in | on | ne(e|a)?re? | by | without | [vu]nder | [vu]pper | lower | nexte? | o[uv]er | [vu]pon | bes[iy]d| a | ag(ai|ey|ay)nst | w[iy]th[iy]n (and|&) are |(?<! s)\. (?![[ij]o)|,|:|;|\[|\])/i){
+	$shop = $3;
+	}else{
+	 	$shop = "NULL";
+	}
+	
+	my $date;
+	my $datestr = $rawdate;
+	$datestr =~ s/\[|\]//;
+	$datestr =~ s/^l/1/;
 
-	if ($date =~ m/(\d{4})/){
+	if ($datestr =~ m/i.e. (\d{4})/){
+		$date = $1;
+	}elsif ($datestr =~ m/(\d{4})/){
 		$date = $1;
 	}else{
 		$date = 0;
@@ -280,20 +299,16 @@ sub get_books{
 		 @printers = &psStrings($printerString);
 	}else{
 		 @printers = ["NULL", "NULL"];
-	}
-
-	
+	}	
 
 	$keys =~ s/Early works to 1[89]00|17th century|English|\W//g;
 	$keys = substr ($keys,0,250);
 	$pages = substr ($pages,0,250);
+	$rawdate = substr ($rawdate,0,250);
 
-
-
-			chomp(@printers, @sellers, $shop);
-	my %book = (id=> $id, title=> $title, author=> $author, printers=> [@printers], sellers=>[@sellers], shop=>$shop, loc=>$loc, date=>$date, pub=>$pub, keywords=>$keys, pubPlace=>$pubPlace, pages=>$pages, size=>$size, authorTitle=>$authorTitle);
-	push(@books,\%book);
-	
+	chomp(@printers, @sellers, $shop);
+	my %book = (id=> $id, title=> $title, author=> $author, printers=> [@printers], sellers=>[@sellers], shop=>$shop, loc=>$loc, date=>$date, rawdate=>$rawdate, pub=>$pub, keywords=>$keys, pubPlace=>$pubPlace, pages=>$pages, size=>$size, authorTitle=>$authorTitle);
+	push(@books,\%book);	
   }
   return @books;
 }
@@ -309,6 +324,7 @@ sub psStrings{
     my @tmp = split /,/, $psString;
 	chomp @tmp;
 	foreach my $tmp (@tmp){
+		$tmp =~ s/^ //;
 		if ($tmp =~ m/\w+/){
  			my @psName = split / /, $tmp;
  			push @psNames, \@psName;
